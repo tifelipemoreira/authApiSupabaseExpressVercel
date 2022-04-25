@@ -1,11 +1,12 @@
 const pool = require("../config/dbPostgress");
 
-const getUsersbyId = async (req, res) => {
-  console.log("Ping function");
-  return res.status(200).json({
-    status: "ID",
+
+const raiz = async (req, res) => {
+  return res.json({
+    status: "Em Construção - API ",
   });
 };
+
 const getUsersbyEmail = async (req, res) => {
   console.log("Ping function");
   return res.status(200).json({
@@ -13,7 +14,11 @@ const getUsersbyEmail = async (req, res) => {
   });
 };
 
-const getUserBd = async (req, res) => {
+const getUserById = async (req, res) => {
+  //obriga enviar o ID
+  if (!req.query.id){
+    return res.status(400).json({status:"Consulta por ID. Obrigatório passar o ID."});
+  }
   var id = req.query.id
   try {
     pool.query(
@@ -32,11 +37,10 @@ const getUserBd = async (req, res) => {
     console.log(e)
     return res.status(400).json({e});
   }
-  //impede de continuar
 };
 
 module.exports = {
-  getUsersbyId,
-  getUsersbyEmail,
-  getUserBd,
+  raiz,
+  getUserById,
+  getUsersbyEmail
 };
