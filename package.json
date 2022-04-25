@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Authentication API built on Node with Express integrated with Supabase and running on Vercel",
   "main": "index.js",
+  "engines": {
+    "node": "16.x"
+  },
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
