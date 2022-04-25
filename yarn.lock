@@ -284,6 +284,11 @@ dot-prop@^5.2.0:
   dependencies:
     is-obj "^2.0.0"
 
+dotenv@^16.0.0:
+  version "16.0.0"
+  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.0.0.tgz#c619001253be89ebb638d027b609c75c26e47411"
+  integrity sha512-qD9WU0MPM4SWLPJy/r2Be+2WgQj8plChsyrCNQzW/0WjvcJQiKQJ9mH3ZgB3fxbUUxgc/11ZJ0Fi5KiimWGz2Q==
+
 duplexer3@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/duplexer3/-/duplexer3-0.1.4.tgz#ee01dd1cac0ed3cbc7fdbea37dc0a8f1ce002ce2"
@@ -760,6 +765,11 @@ postgres-interval@^1.1.0:
   integrity sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==
   dependencies:
     xtend "^4.0.0"
+
+postgres@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/postgres/-/postgres-3.1.0.tgz#4b4e26c1117bde3c13bbe96472b25da243b07185"
+  integrity sha512-yQbJtA7z6SsQuFiF01rmHlkG2gU5IEv9D/Pn2fu8Tz6x3/suNWZs4fIPd59rkL+dfVfhDqYQ7DU3YnUqzEDB5Q==
 
 prepend-http@^2.0.0:
   version "2.0.0"
