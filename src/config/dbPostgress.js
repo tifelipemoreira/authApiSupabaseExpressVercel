@@ -1,7 +1,6 @@
 const { Pool } = require('pg')
 require('dotenv/config');
 
-console.log(process.env.DB_USER)
 
 //Configurar as variaveis de ambiente na vercel e utilizar os secrets 
 const pool = new Pool({

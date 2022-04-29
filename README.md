@@ -9,3 +9,5 @@ https://www.youtube.com/watch?v=vCuf62T2snY
 *Importante*
 Colocar variaveis de ambiente na vercel PORT e pool do banco de dados.
 
+
+Para esse teste foi utilizado o Supabase/postgres

@@ -1,0 +1,44 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "title": "API DE Autenticação",
+      "description": "API de exemplo de autenticação",
+      "version": "1.0"
+    },
+    "host": "localhost:8001",
+    "basePath": "/",
+    "schemes": [
+      "http","application/json"
+    ],
+    "paths": {
+      "/getUserById/": {
+        "get": {
+          "description": "Id da operação",
+          "operationId": "SOMA",
+          "parameters": [
+            {
+              "name": "a",
+              "in": "path",
+              "description": "Primeiro número. Valor por omissão <code>10</code>.",
+              "required": true,
+              "default": "10",
+              "enum": [
+                "10"
+              ]
+            },
+            {
+              "name": "b",
+              "in": "path",
+              "description": "Segundo número. Valor por omissão <code>15>/code>.",
+              "required": true,
+              "default": "15",
+              "enum": [
+                "15"
+              ]
+            }
+          ],
+          "responses": {}
+        }
+      }
+    }   
+}
