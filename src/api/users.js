@@ -101,6 +101,7 @@ const getUsers = async (req, res) => {
 
 //função de autenticação retorna token
 const oauth2 = async (req, res) => {
+  console.log("1");
   const { email, password } = req.body;
   if (!email) {
     return res.status(400).json({
@@ -115,29 +116,29 @@ const oauth2 = async (req, res) => {
     var response = await pool.query(
       `select id,email,user_name,password from users where  email = '${email.trim()}'`
     );
+    if (!response.rows[0]) {
+      return res.status(401).json({ status: "Unauthorized" });
+    } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
+      return res.status(401).json({ status: "Unauthorized" });
+    }
+    const token = jwt.sign(
+      {
+        id: response.rows[0].id,
+        email: response.rows[0].email,
+        user_name: response.rows[0].user_name,
+      },
+      process.env.JWT_KEY,
+      { expiresIn: "4h" }
+    );
+    return res.status(200).json({
+      status: "Sucess",
+      email: response.rows[0].email,
+      user_name: response.rows[0].user_name,
+      token: token,
+    });
   } catch (e) {
     return res.status(500).json({ status: "error", error: e });
   }
-  if (!response.rows[0]) {
-    return res.status(401).json({ status: "Unauthorized" });
-  } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
-    return res.status(401).json({ status: "Unauthorized" });
-  }
-  const token = jwt.sign(
-    {
-      id: response.rows[0].id,
-      email: response.rows[0].email,
-      user_name: response.rows[0].user_name,
-    },
-    process.env.JWT_KEY,
-    { expiresIn: "4h" }
-  );
-  return res.status(200).json({
-    status: "Sucess",
-    email: response.rows[0].email,
-    user_name: response.rows[0].user_name,
-    token: token,
-  });
 };
 
 //reseta password
@@ -165,7 +166,7 @@ const resetPassword = async (req, res) => {
       id = '${userid}'
       and delet = false`
     );
-    console.log(response.rowCount)
+    console.log(response.rowCount);
     if (response.rowCount > 0) {
       return res.status(200).json({ status: "Sucess Reset Password" });
     } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
