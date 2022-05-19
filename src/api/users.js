@@ -1,14 +1,8 @@
 const pool = require("../config/dbPostgress");
 const bcrypt = require("bcrypt");
+const { response } = require("express");
 
-const getUsersbyEmail = async (req, res) => {
-  console.log("Ping function");
-  return res.status(200).json({
-    status: "Email",
-  });
-};
-
-const postCreateUser = async (req, res) => {
+const CreateUser = async (req, res) => {
   const { email, password, user_name, fullname, erp_user_code } = req.body;
 
   //validar se todos os campos do body foram informados.
@@ -56,28 +50,28 @@ const postCreateUser = async (req, res) => {
     fullname
   );
   if (userCreated.error) {
-    return res.status(500).json(userCreated.e);
+    return res.status(500).json(userCreated.errBcrypt);
   }
 
   if (userCreated.id) {
     console.log(userCreated);
-    return res.status(200).json({
-      status: "user created",
-      data: { id: userCreated.id },
+    return res.status(201).json({
+      status: "sucess",
+      data: { id: userCreated.id, email:userCreated.email,user_name:userCreated.user_name},
     });
   }
 };
 
-const getUserById = async (req, res) => {
-  if (!req.query.id) {
+const getUsers = async (req, res) => {
+  if (!req.query.user_name) {
     return res
       .status(400)
       .json({ status: "Consulta por ID. Obrigatório passar o ID." });
   }
-  var id = req.query.id;
+  var user_name = req.query.user_name;
   try {
     pool.query(
-      `SELECT id,erp_user_code,email FROM users WHERE id = '${id}' `,
+      `SELECT id,erp_user_code,email FROM users WHERE user_name = '${user_name}' `,
       (error, result) => {
         //retorna objeto com resultado da query
         if (typeof error != "undefined") {
@@ -93,6 +87,30 @@ const getUserById = async (req, res) => {
     return res.status(400).json({ e });
   }
 };
+
+//função de autenticação retorna token
+const oauth2 = async (req, res) => {
+  const { email, password } = req.body;
+  const bcryptPassword = bcrypt.hashSync(password, 10);
+  try {
+    var response = await pool.query(
+      `select * from users where  email = '${email.trim()}'`
+    );
+  } catch (e) {
+    return res.status(500).json({ status: "error", error: e });
+  }
+  if (!response.rows[0]) {
+    return res.status(401).json({ status: "Unauthorized" });
+  } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
+    return res.status(401).json({ status: "Unauthorized" });
+  }
+  return res.status(200).json({
+    status: "sucess",
+    email: response.email,
+    password: response.password,
+  });
+};
+
 
 /** Função que verifica se já existe cadastro com campos que não permitem
  * repetir.
@@ -123,51 +141,21 @@ async function checkUserAlreadyExists(email, erp_user_code, user_name) {
 
 async function createUser(email, erp_user_code, password, user_name, fullname) {
   var response;
-  var insert;
-  var bcryptPassword = "";
-  // utiliza biblioteca bcrypt para criptografar a senha
-  bcrypt.hash(password, 10, (errBcrypt, hash) => {
-    if (errBcrypt) {
-      return (res = { continue: false, error: true, errBcrypt });
-    }
-    bcryptPassword = hash;
-    console.log("bcrypt", bcryptPassword);
-  });
-  
-  insert = `insert into users`;
-  insert = insert + `(email,erp_user_code,password,user_name,fullname)`;
-  insert =
-    insert +
-    `values  ('${email.trim()}','${erp_user_code.trim()}','${bcryptPassword}','${user_name.trim()}','${fullname.trim()}') RETURNING id`;
-  console.log(insert);
+  var bcryptPassword = bcrypt.hashSync(password, 10);
+  var insert1 = `insert into users (email,erp_user_code,password,user_name,fullname)`;
+  var insert2 = `values  ('${email.trim()}','${erp_user_code.trim()}','${bcryptPassword}','${user_name.trim()}','${fullname.trim()}') RETURNING id,email,user_name`;
+  var insert = insert1 + insert2;
   try {
-    console.log("4");
     response = await pool.query(insert);
   } catch (e) {
-    console.log("5");
-    res = { continue: false, error: true, e };
-    return res;
+    return { error: true, e };
   }
-  console.log(response.rows[0].id);
-  return { id: response.rows[0].id, error: false };
+  return { id: response.rows[0].id, email:response.rows[0].email, user_name:response.rows[0].user_name , error: false };
 }
 
-//função de autenticação retorna token
-const oauth2 = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    response = await pool.query(
-      `select count(*) quantidade from users where  email = '${email.trim()}' and password = '${password.trim()}'`
-    );
-    return res.status(200).json({ email: email });
-  } catch (e) {
-    return res.status(400).json({ error: "credentials wrong" });
-  }
-};
 
 module.exports = {
-  getUserById,
-  getUsersbyEmail,
-  postCreateUser,
+  getUsers,
+  CreateUser,
   oauth2,
 };

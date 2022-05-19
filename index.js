@@ -7,8 +7,7 @@ const port = process.env.PORT || 3000
 
 const users = require('./src/api/users')
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerFile))
-app.get('/userbyemail', users.getUsersbyEmail)
-app.get('/getuserbyid', users.getUserById)
-app.post('/createuser', users.postCreateUser)
+app.get('/getuserbyid', users.getUsers)
+app.post('/createuser', users.CreateUser)
 app.post('/oauth2',users.oauth2)
 app.listen(port)
