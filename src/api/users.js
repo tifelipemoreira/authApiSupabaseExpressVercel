@@ -1,9 +1,11 @@
 const pool = require("../config/dbPostgress");
 const bcrypt = require("bcrypt");
 const { response } = require("express");
+const jwt = require("jsonwebtoken");
+require("dotenv/config");
 
-const CreateUser = async (req, res) => {
-  const { email, password, user_name, fullname, erp_user_code } = req.body;
+const createUser = async (req, res) => {
+  const { email, password, user_name, full_name, erp_user_code } = req.body;
 
   //validar se todos os campos do body foram informados.
   if (!email) {
@@ -18,9 +20,9 @@ const CreateUser = async (req, res) => {
     return res.status(400).json({
       status: "Missing user_name",
     });
-  } else if (!fullname) {
+  } else if (!full_name) {
     return res.status(400).json({
-      status: "Missing fullname",
+      status: "Missing full_name",
     });
   } else if (!erp_user_code) {
     return res.status(400).json({
@@ -42,22 +44,34 @@ const CreateUser = async (req, res) => {
       status: "email,erp_user_code or user_name already exists",
     });
   }
-  var userCreated = await createUser(
+  var userCreated = await dbCreateUser(
     email,
     erp_user_code,
     password,
     user_name,
-    fullname
+    full_name
   );
   if (userCreated.error) {
     return res.status(500).json(userCreated.errBcrypt);
   }
 
   if (userCreated.id) {
-    console.log(userCreated);
+    const token = jwt.sign(
+      {
+        id: userCreated.id,
+        email: userCreated.email,
+        user_name: userCreated.user_name,
+      },
+      process.env.JWT_KEY,
+      { expiresIn: "4h" }
+    );
     return res.status(201).json({
-      status: "sucess",
-      data: { id: userCreated.id, email:userCreated.email,user_name:userCreated.user_name},
+      user: {
+        id: userCreated.id,
+        email: userCreated.email,
+        user_name: userCreated.user_name,
+      },
+      token: token,
     });
   }
 };
@@ -75,15 +89,12 @@ const getUsers = async (req, res) => {
       (error, result) => {
         //retorna objeto com resultado da query
         if (typeof error != "undefined") {
-          console.log(error);
           return res.status(400).json({ error });
         }
-        //console.log("funcionou")
         return res.status(200).json(result.rows);
       }
     );
   } catch (e) {
-    console.log(e);
     return res.status(400).json({ e });
   }
 };
@@ -91,10 +102,18 @@ const getUsers = async (req, res) => {
 //função de autenticação retorna token
 const oauth2 = async (req, res) => {
   const { email, password } = req.body;
-  const bcryptPassword = bcrypt.hashSync(password, 10);
+  if (!email) {
+    return res.status(400).json({
+      status: "Missing email",
+    });
+  } else if (!password) {
+    return res.status(400).json({
+      status: "Missing password",
+    });
+  }
   try {
     var response = await pool.query(
-      `select * from users where  email = '${email.trim()}'`
+      `select id,email,user_name,password from users where  email = '${email.trim()}'`
     );
   } catch (e) {
     return res.status(500).json({ status: "error", error: e });
@@ -104,13 +123,58 @@ const oauth2 = async (req, res) => {
   } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
     return res.status(401).json({ status: "Unauthorized" });
   }
+  const token = jwt.sign(
+    {
+      id: response.rows[0].id,
+      email: response.rows[0].email,
+      user_name: response.rows[0].user_name,
+    },
+    process.env.JWT_KEY,
+    { expiresIn: "4h" }
+  );
   return res.status(200).json({
-    status: "sucess",
-    email: response.email,
-    password: response.password,
+    status: "Sucess",
+    email: response.rows[0].email,
+    user_name: response.rows[0].user_name,
+    token: token,
   });
 };
 
+//reseta password
+const resetPassword = async (req, res) => {
+  const { userid, password } = req.body;
+  if (!userid) {
+    return res.status(400).json({
+      status: "Missing userid",
+    });
+  }
+  if (!password) {
+    return res.status(400).json({
+      status: "Missing password",
+    });
+  }
+  var bcryptPassword = bcrypt.hashSync(password, 10);
+  try {
+    var response = await pool.query(
+      `
+    update
+      users
+    set
+      password = '${bcryptPassword}'
+    where
+      id = '${userid}'
+      and delet = false`
+    );
+    console.log(response.rowCount)
+    if (response.rowCount > 0) {
+      return res.status(200).json({ status: "Sucess Reset Password" });
+    } else if (!bcrypt.compareSync(password, response.rows[0].password)) {
+      return res.status(400).json({ status: "Can't Update Password" });
+    }
+  } catch (e) {
+    return res.status(500).json({ status: "error", error: e });
+  }
+};
 
 /** Função que verifica se já existe cadastro com campos que não permitem
  * repetir.
@@ -118,44 +182,48 @@ const oauth2 = async (req, res) => {
 async function checkUserAlreadyExists(email, erp_user_code, user_name) {
   var response;
   var res;
-  console.log(
-    `select count(*) from users where  email = '${email.trim()}' or erp_user_code =  '${erp_user_code.trim()}' or user_name = '${user_name.trim()}'`
-  );
   try {
     response = await pool.query(
       `select count(*) quantidade from users where  email = '${email.trim()}' or erp_user_code =  '${erp_user_code.trim()}' or user_name = '${user_name.trim()}'`
     );
-    console.log("count", response.rows[0].quantidade);
   } catch (e) {
-    console.log("1");
     res = { continue: false, error: true, e };
     return res;
   }
   if (response.rows[0].quantidade > 0) {
-    console.log("2");
     return { continue: false, error: false };
   }
-  console.log("3");
   return { continue: true, error: false };
 }
 
-async function createUser(email, erp_user_code, password, user_name, fullname) {
+async function dbCreateUser(
+  email,
+  erp_user_code,
+  password,
+  user_name,
+  full_name
+) {
   var response;
   var bcryptPassword = bcrypt.hashSync(password, 10);
-  var insert1 = `insert into users (email,erp_user_code,password,user_name,fullname)`;
-  var insert2 = `values  ('${email.trim()}','${erp_user_code.trim()}','${bcryptPassword}','${user_name.trim()}','${fullname.trim()}') RETURNING id,email,user_name`;
+  var insert1 = `insert into users (email,erp_user_code,password,user_name,full_name)`;
+  var insert2 = `values  ('${email.trim()}','${erp_user_code.trim()}','${bcryptPassword}','${user_name.trim()}','${full_name.trim()}') RETURNING id,email,user_name`;
   var insert = insert1 + insert2;
   try {
     response = await pool.query(insert);
   } catch (e) {
     return { error: true, e };
   }
-  return { id: response.rows[0].id, email:response.rows[0].email, user_name:response.rows[0].user_name , error: false };
+  return {
+    id: response.rows[0].id,
+    email: response.rows[0].email,
+    user_name: response.rows[0].user_name,
+    error: false,
+  };
 }
-
 
 module.exports = {
   getUsers,
-  CreateUser,
+  createUser,
   oauth2,
+  resetPassword,
 };
