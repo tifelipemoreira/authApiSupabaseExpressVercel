@@ -7,7 +7,7 @@ require('dotenv/config');
 const port = process.env.PORT || 3000 
 
 const users = require('./src/api/users')
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerFile))
+app.get('/docs', swaggerUi.serve, swaggerUi.setup(swaggerFile))
 app.get('/getusers',tokenLogin, users.getUsers)
 app.post('/createuser',tokenLogin, users.createUser)
 app.post('/oauth2',users.oauth2)
